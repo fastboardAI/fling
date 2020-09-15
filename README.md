@@ -1,4 +1,4 @@
-# fling: fastBoard Lingusitics
+# fling: fastBoard Lingusitics (Currently in active development till 09.30.2020)
 ### Deploy real-time unsupervised linguistic functionalities to your applications. 
 
 This repository is a lightweight library for performing unsupervised text processing tasks, and using real-time unsupervised learning and inference functionalities in your application for better runtime inference. The lingusitic features can be used for a multitude of uses including search, adverstising, personalization and recommendation. 
