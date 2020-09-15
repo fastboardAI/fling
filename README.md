@@ -3,6 +3,10 @@
 
 This repository is a lightweight library for performing unsupervised text processing tasks, and using real-time unsupervised learning and inference functionalities in your application for better runtime inference. The lingusitic features can be used for a multitude of uses including search, adverstising, personalization and recommendation. 
 
+## UPDATE (09.14.2020)
+- Added categorical cluster characteristic generation module.
+- Added class for tf-idf.
+
 ## Version 0.1 Beta:
 - add DBSCAN clusters using tfidf as a new label to your data.
 - add fasttext based supervised and unsupervised word vector as label.
