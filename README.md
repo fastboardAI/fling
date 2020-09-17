@@ -1,5 +1,6 @@
 # fLing : Fast Linguistics 
 Library for all your unsupervised linguistics tasks.
+![Image of fling](fling.png)
 
 ###Introduction
 This is a library for performing unsupervised lingustic functionalities based on textual fields on your data. An API will also be released for real-time inference. This is a small part of project fling, which is an opensource linguistic library designed for easy integration to applications. 
