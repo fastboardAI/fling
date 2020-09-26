@@ -157,7 +157,14 @@ class flingDBSCAN:
         vec = []
         for el in self.clusterMetadata.keys():
             vec.append(self.clusterMetadata[el])
-        self.data[label] = vec    
+        self.data[label] = vec
+        
+    def createClusterCharacteristics(self,column,method):
+        if method == 'glove':
+            grouped = self.data.groupby([column])['glove-vector'].apply(np.mean)
+        else:
+            grouped = self.data.groupby([column])['tfidf2vec-tfidf'].apply(np.mean)
+        grouped        
         
     def drawProgressBar(self, percent, barLen = 50):			#just a progress bar so that you dont lose patience
         sys.stdout.write("\r")
