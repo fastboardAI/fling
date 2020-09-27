@@ -9,15 +9,18 @@ Library for all your unsupervised linguistics tasks in production.
 This is a library for performing unsupervised lingustic functionalities based on textual fields on your data. An API will also be released for real-time inference. This is a small part of project fling, which is an opensource linguistic library designed for easy integration to applications. 
 
 Primary functionalities
-- Pre-process text columns in dataset, with custom tokenizers.
-- Add tf-idf information as a new column to a dataset.
-- Add pretrained word embeddings to convert raw text to document embeddings (word2vec, glove, fastText, custom).
-- Use tfidf2vec module to convert tfidf information into vectors/embeddings.   
-- Train tf-idf word vectors on full training dataset on categories for fast clustering inference. 
-- Apply DBSCAN based on one or combined embeddings created in the previous steps, along with original information in the dataset. 
-- Save cluster characteristic file and generate clusters on a new data. 
-- Use clusterID's as a new feature for other supervised and unsupervised tasks. 
-- More functionalities will be added. 
+- [x] Pre-process text columns in dataset, with custom tokenizers.
+- [x] Add tf-idf dictionary as a new column to a dataset.
+- [x] Add pretrained word embeddings to convert raw text to document embeddings (word2vec, glove, fastText, custom trained). This module has dependency on gensim and tensorflow.
+- [x] Train fastText, word2vec, doc2vec word vectors and add a new column to dataset.
+- [x] Use tfidf2vec dict to convert tfidf information with pretrained word embeddings to get corpus enhanced combined word embeddings.
+- [x] Save cluster characteristics in a trained model and used distance based methods to compute fast clusters for documents in test data.
+- [x] Use clusterID's as a new feature for other supervised and unsupervised tasks
+
+Upcoming additions
+- Adding Sequential Denoising Autoencoders
+- ClusterGANS initial edition
+- 
  
 *fastboardAI/fling*
 https://github.com/fastboardAI/fling.git
