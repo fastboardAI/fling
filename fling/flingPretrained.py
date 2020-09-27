@@ -1,3 +1,5 @@
+
+import matplotlib as mpl
 from imp import reload
 from nltk.corpus import stopwords
 from collections import Counter
@@ -7,21 +9,24 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import nltk,re,pprint
 import sys,glob,os
-import operator, string, argparse, math, random
-import matplotlib.pyplot as plot
+import operator, string, argparse, math, random, statistics
+import matplotlib.pyplot as plt
+from sklearn import metrics
 
 class flingPretrained:
     def __init__(self,data):
         self.data = data
         self.nDocs = len(self.data)
+        self.nDocsTest = 0
         self.allDistances = {}
-        self.wordVecModel = None
+        self.groupedCharacteristic = {'glove' : None, 'vec_tfidf-doc2vec' : None, 'vec_tfidf-glove' : None, 'doc2vec' : None}
+        self.wordVecModel = {'glove':None, 'doc2vec':None}
         print("\nDBSCAN initialized!\n")
         
     def loadPretrainedWordVectors(self,vecType):
         if vecType == 'glove':
-            self.wordVecModel = self.loadGloveModel()
-            print("GloVe Vectors Loaded!\n")
+            self.wordVecModel['glove'] = self.loadGloveModel()
+            print("GloVe Vectors Loaded!\n") 
 
     def loadGloveModel(self):
         print("Loading Glove Model\n")
@@ -36,7 +41,7 @@ class flingPretrained:
             wordEmbedding = np.array([float(value) for value in splitLines[1:]])
             gloveModel[word] = wordEmbedding
         print(len(gloveModel)," words loaded!\n")
-        return gloveModel
+        return(gloveModel)
     
     def getDocVector(self,doc_Id):
         gvl=self.getGloveVectorList(listx)
@@ -75,29 +80,33 @@ class flingPretrained:
         score_total = score_common + score_doc1 + score_doc2
         return(score_total)
     
+    #get gloVe vectors for all words in the document
     def getGloveVectorList(self,listx):
         vecList = []
         nf = []
         for w in listx:
             try:
-                vecList.append(self.wordVecModel[w])
+                vecList.append(self.wordVecModel['glove'][w])
             except:
                 nf.append(w)
                 #print(w,"not found in glove model!")
                 continue        
         if len(vecList)==0:
             return([[0]*50])
-        vecArray = np.stack(vecList, axis=0 )
+        vecArray = np.stack(vecList, axis=0)
         return vecArray
     
+    #document vector is the average of all the word vectors gloVe
     def getDocVector(self,listx):
         gvl=self.getGloveVectorList(listx)
         glove_dv = np.mean(gvl,axis=0)
         return(glove_dv)
     
     def getGloveDistance(self,docId_1,docId_2,method):
-        listWords_1 = set(list(self.data['tfMatrix'][int(docId_1)]['word']))
-        listWords_2 = set(list(self.data['tfMatrix'][int(docId_2)]['word']))
+        #listWords_1 = set(list(self.data['tfMatrix'][int(docId_1)]['word']))
+        #listWords_2 = set(list(self.data['tfMatrix'][int(docId_2)]['word']))
+        listWords_1 = set(list(self.data['tfMatrix'].iloc[int(docId_1)]['word']))
+        listWords_2 = set(list(self.data['tfMatrix'].iloc[int(docId_2)]['word']))
         if method == 'average':
             dv_1 = self.getDocVector(listWords_1)
             dv_2 = self.getDocVector(listWords_2)
@@ -138,36 +147,143 @@ class flingPretrained:
         pltx = plot.hist(distanceSample,bins=20)
         return(pltx)
     
+    def getGloveScore(self,w):
+        try:
+            return(self.wordVecModel['glove'][w])
+        except:
+            return([0*50]) 
+    
     def doctfidf2vec(self,docId,mode):
+        docVecList = []
         listWords = list(self.data['tfMatrix'][int(docId)]['word'])
         if mode == "tf-only":
             scores = list(self.data['tfMatrix'][int(docId)]['tf'])
         elif mode == "tf-idf":
             scores = list(self.data['tfMatrix'][int(docId)]['tf-idf'])
         lenW =len(listWords)
-        vecList = []
-        for w in range(lenW):
-            xword = listWords[w]
-            xscore = scores[w]
-            try:
-                vecList.append(xscore*self.wordVecModel[xword])
-            except:
-                continue
-        if len(vecList)==0:
-            return([[0]*50])
-        vecArray = np.stack(vecList, axis=0)
-        return(np.mean(vecArray,axis=0))
+        gloveScores = [self.getGloveScore(el) for el in listWords]
+        for j in range(lenW):
+            temp = [float(scores[j])]*50
+            #gloveScores[j]
+            res = [a*b for (a,b) in zip(temp,gloveScores[j])]
+            if len(res)==1:
+                continue;
+            else:
+                docVecList.append(res)            
+        #print([len(el) for el in docVecList])
+        #vecArray = np.stack(docVecList, axis=0)
+        return(np.mean(docVecList,axis=0))
     
-    def tfidf2vec(self,mode):
+    def createGroupedCharacteristics(self,column):
+        self.dataTrain.groupby([column])
+        print("\nComputing groupCharacteristics for GloVe!")
+        self.groupedCharacteristic['glove-vector'] = self.dataTrain.groupby([column])['glove-vector'].apply(np.average).to_frame()
+        print("\nComputing groupCharacteristics for doc2vec!")
+        self.groupedCharacteristic['doc2vec'] = self.dataTrain.groupby([column])['doc2vec'].apply(np.average).to_frame()
+        #print("\nComputing groupCharacteristics for tfidf-doc2vec!")
+        #self.groupedCharacteristic['vec_tfidf-doc2vec'] = self.dataTrain.groupby([column])['vec_tfidf-doc2vec'].apply(np.average).to_frame()
+        print("\nComputing groupCharacteristics for tfidf-GloVe!")
+        self.groupedCharacteristic['vec_tfidf-glove'] = self.dataTrain.groupby([column])['vec_tfidf-glove'].apply(np.average).to_frame()
+       
+    def getNearestGroup(self,vec,vectorName):
+        minDist = math.inf
+        minGroup = None
+        for colx in fdb.groupedCharacteristic[vectorName].index.values:
+            vecy = fdb.groupedCharacteristic[vectorName].loc[colx].to_numpy(dtype=object)
+            #distx = np.linalg.norm(vec-vecy)
+            is_all_zero = np.all((vecy == 0.0))
+            if not is_all_zero:
+                distx = np.linalg.norm(scipy.spatial.distance.euclidean(vec,vecy))
+            else:
+                distx = np.linalg.norm(vec)
+            print(distx)
+            if distx<minDist:
+                minDist = distx
+                minGroup = colx                 
+        return minGroup
+    
+    def splitTestTrain(self):
+        mPt = int(self.nDocs*0.7)
+        self.dataTrain = self.data[:mPt]
+        self.dataTest = self.data[mPt:]
+        self.nDocsTest = len(self.dataTest)
+               
+    def addVectorComputedGroup(self,vectorName,groupName):
+        computedGroups = []
+        for docId in range(self.nDocsTest):
+            computedGroup = self.getNearestGroup(self.dataTest[vectorName].iloc[docId],vectorName)
+            computedGroups.append(computedGroup)           
+        self.dataTest[groupName] = computedGroups
+        
+        
+    def getAccuracy(self,compareWith,vecName):
+        countCorrect = 0
+        for d in range(self.nDocsTest):
+            if self.dataTest[vecName].iloc[d] == self.dataTest[compareWith].iloc[d]:
+                countCorrect+=1
+        print("Accuracy of",vecName,countCorrect/self.nDocsTest*100,"%")
+            
+    def tfidf2vec(self,mode,method):
         vecL = []
         if mode == 'tf-only':
-            columnName = 'tfidf2vec-tf'
+            columnName = 'vec_tf-' + method
+            print("\nComputing column:",columnName)
             for indx in range(self.nDocs):
                 gvl=self.doctfidf2vec(indx,'tf-only')
                 vecL.append(gvl)
+                prog=(indx+1)/self.nDocs
+                self.drawProgressBar(prog)
         else:
-            columnName = 'tfidf2vec-tfidf'
+            columnName = 'vec_tfidf-' + method
+            print("\nComputing column:",columnName)
             for indx in range(self.nDocs):
                 gvl=self.doctfidf2vec(indx,'tf-idf')
-                vecL.append(gvl)            
+                vecL.append(gvl)
+                prog=(indx+1)/self.nDocs
+                self.drawProgressBar(prog)
         self.data[columnName] = vecL
+
+class vectorize:
+    def __init__(self,data,factorName):
+        self.data = data
+        self.dataNew = []
+        self.model = None
+        self.swords = set(stopwords.words('english'))
+        self.factorName = factorName
+        for docId in range(len(self.data)):
+            dv_1 = self.data[factorName][int(docId)]
+            self.dataNew.append(dv_1)
+        self.nDocs = len(self.dataNew)
+        print(self.nDocs,"documents added!")
+        
+    def rem_stop_punct(self,originalText):
+        splittedText = originalText.split()
+        lenl = len(splittedText)
+        wordFiltered = []
+        tSent = []
+        for r in range(lenl):
+            wordx_1 = splittedText[r]
+            wordx_2 = "".join(c for c in wordx_1 if c not in ('!','.',':',',','?',';','``','&','-','"','(',')','[',']','0','1','2','3','4','5','6','7','8','9')) 
+            sWord = wordx_2.lower()
+            if sWord not in self.swords:
+                tSent.append(sWord)
+        return tSent
+
+    def tagged_document(self,list_of_list_of_words):
+        for i, list_of_words in enumerate(list_of_list_of_words):
+            yield gensim.models.doc2vec.TaggedDocument(list_of_words, [i])
+
+    def trainDocVectors(self):
+        print("\nTraining doc2vec model.")
+        self.data_for_training = list(self.tagged_document(self.dataNew))
+        self.model = gensim.models.doc2vec.Doc2Vec(vector_size=50, min_count=2, epochs=30)
+        self.model.build_vocab(self.data_for_training)
+        self.model.train(self.data_for_training, total_examples=self.model.corpus_count, epochs=self.model.epochs)
+        return(self.model)
+        
+    def addDocVectors(self):
+        print("\nAdding doc2vec vectors to dataset.")
+        docVectors = []
+        for docId in range(len(self.data)):
+            docVectors.append(self.model.infer_vector(self.rem_stop_punct(self.data[self.factorName][int(docId)])))
+        self.data['doc2vec'] = docVectors
