@@ -5,8 +5,8 @@ Library for all your unsupervised linguistics tasks in production.
 
 ![fling](fling.png)
 
-###Introduction
-This is a library for performing unsupervised lingustic functionalities based on textual fields on your data. An API will also be released for real-time inference. This is a small part of project fling, which is an opensource linguistic library designed for easy integration to applications. 
+### Introduction
+This is a library for performing unsupervised lingustic functionalities based on textual fields on your data. An API will also be released for real-time inference. This is a beta version of the of fling open source project. For download information and usage manuals, take a look at the notebook files in examples.
 
 Primary functionalities
 - [x] Pre-process text columns in dataset, with custom tokenizers.
@@ -20,7 +20,6 @@ Primary functionalities
 Upcoming additions
 - Adding Sequential Denoising Autoencoders
 - ClusterGANS initial edition
-- 
  
 *fastboardAI/fling*
 https://github.com/fastboardAI/fling.git
