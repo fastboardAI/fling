@@ -5,10 +5,10 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='fling',
+    name='fastboard-fling',
     packages=find_packages(include=['fling']),
-    version='0.1.1.0',
-    description='Text Clustering using DBSCAN and word vectors',
+    version='0.0.1',
+    description='fastLinguistics : unsupervised computational linguistics',
     author='Arnab Borah',
     license='MIT',
     long_description=long_description,
