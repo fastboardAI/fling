@@ -1,5 +1,6 @@
 # fLing : Fast Linguistics 
-Library for all your unsupervised linguistics tasks.
+The fLing Open Source Project, in collaboration with Tezpur University Dept. of CSE.
+Library for all your unsupervised linguistics tasks in production.
 
 
 ![fling](fling.png)
