@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import nltk,re,pprint
+import nltk,re,pprint,scipy
 import sys,glob,os
 import operator, string, argparse, math, random, statistics
 import matplotlib.pyplot as plt
@@ -17,6 +17,13 @@ class flingPretrained:
     Trains linguistic models: doc2vec, fastText, word2vec, SDAE
     Load pretrained linguistic models: doc2vec, fastText, word2vec, SDAE
     Save group characteristics
+    
+    All embeddings available/level/word-order-preserval:
+        Glove : word / No
+        Doc2Vec : document / Yes
+        Word2Vec : word / No
+        TF-IDF : document / No
+        tfIDF weighted GloVe / No
     '''
     def __init__(self,data):
         self.data = data
@@ -25,7 +32,7 @@ class flingPretrained:
         self.allDistances = {}
         self.groupedCharacteristic = {'glove' : None, 'vec_tfidf-doc2vec' : None, 'vec_tfidf-glove' : None, 'doc2vec' : None}
         self.wordVecModel = {'glove':None, 'doc2vec':None}
-        print("\nDBSCAN initialized!\n")
+        print("\nWorking on pretrained word embeddings!\n")
         
     '''
     Load pretrained word vectors: gloVe, fastText, doc2vec, word2vec, SDAE
@@ -65,16 +72,50 @@ class flingPretrained:
         return(glove_dv)
     
     '''
-    Add the new computed GloVe vector on the document to the data.
+    Returns a list of GloVe vectors for all words in the document.
     '''
-    def addDocumentGloveVector(self):
+    def getGloveVectorList(self,listx):
+        vecList = []
+        nf = []
+        presenceBit = []
+        for w in listx:
+            try:
+                vecList.append(self.wordVecModel['glove'][w])
+                presenceBit.append(1)
+            except:
+                presenceBit.append(0)
+                nf.append(w)
+                continue        
+        if len(vecList)==0:
+            return([[0]*50],[])
+        vecArray = np.stack(vecList, axis=0)
+        return vecArray,presenceBit  
+    
+    '''
+    Add two new computed vectors to the data.
+        a) glove-vector : plain GloVe vectors non-weighted
+        b) glove-tfidf : GloVe vectors weighted with their tfIDF scores 
+    uses numpy.average(a, axis=None, weights=None, returned=False)[source]
+    '''
+    def addDocumentGloveVectors(self):
         vecL = []
+        vecWL = []
         for indx in range(self.nDocs):
             listWords_1 = set(list(self.data['tfMatrix'][int(indx)]['word']))
-            gvl=self.getGloveVectorList(listWords_1)
-            vecL.append(np.mean(gvl,axis=0))
+            tFreqs = np.asarray(list(self.data['tfMatrix'][int(indx)]['tf']))
+            gvl,prBit = self.getGloveVectorList(listWords_1)
+            if prBit == []:
+                vecL.append([0]*50)
+                vecWL.append([0]*50)         
+                continue;
+            termFreqs = [a*b for (a,b) in zip(prBit,tFreqs) if a*b!=0]            #print("listWords1,termFreqs",listWords_1,termFreqs)
+            vecL.append(np.nanmean(gvl,axis=0))
+            vecWL.append(np.average(gvl, axis=0, weights=termFreqs))          
         self.data['glove-vector'] = vecL
-
+        self.getDistanceDistribution(100,'glove-vector')
+        self.data['glove-tfIDF'] = vecWL
+        self.getDistanceDistribution(100,'glove-tfIDF')
+        
     '''
     Distance between two documents using TF-IDF dictionaries.
         Method used: Using 'percentage of importance' by using tf-idf score as weights
@@ -101,23 +142,6 @@ class flingPretrained:
             score_doc2 += score_2/float(sumwt2)
         score_total = score_common + score_doc1 + score_doc2
         return(score_total)
-    
-    '''
-    Returns a list of GloVe vectors for all words in the document.
-    '''
-    def getGloveVectorList(self,listx):
-        vecList = []
-        nf = []
-        for w in listx:
-            try:
-                vecList.append(self.wordVecModel['glove'][w])
-            except:
-                nf.append(w)
-                continue        
-        if len(vecList)==0:
-            return([[0]*50])
-        vecArray = np.stack(vecList, axis=0)
-        return vecArray
     
     #document vector is the average of all the word vectors gloVe
     def getDocVector(self,listx):
@@ -146,13 +170,22 @@ class flingPretrained:
             else:
                 progress += " "
         sys.stdout.write("[ %s ] %.2f%%" % (progress, percent * 100))
-        sys.stdout.flush()	
+        sys.stdout.flush()
+        
+    def getDistance(self,docId_1,docId_2,vectorName):
+        if method == 'glove':
+            dv_1 = self.data['glove-vector'][int(docId_1)]
+            dv_2 = self.data['glove-vector'][int(docId_2)]
+        elif method == 'tfidf':
+            dv_1 = self.data['tfidf2vec-tfidf'][int(docId_1)]
+            dv_2 = self.data['tfidf2vec-tfidf'][int(docId_2)]           
+        dist = np.linalg.norm(dv_1-dv_2)
+        return dist
 
     '''
-    sample distance between numx random documents and generate a bucketized histogram plot to get a better
-    idea of the inter-document distance in the data.
+    Get sample distance distribution between numx random documents in the data and plot histogram 
     '''
-    def getDistanceDistribution(self,numx,method):
+    def getDistanceDistribution(self,numx,vectorName):
         numHalf = int(numx/2)
         doca,docb = [],[]
         for i in range(numHalf):
@@ -162,14 +195,14 @@ class flingPretrained:
         total = numHalf*numHalf
         for doc_1 in range(len(doca)):
             for doc_2 in range(len(docb)):
-                if method == 'glove':
-                    distanceSample.append(self.getGloveDistance(doca[doc_1],docb[doc_2],'average'))
-                else:
-                    distanceSample.append(self.getGloveDistance(doca[doc_1],docb[doc_2],'average'))
+                dv_1 = self.data[vectorName][int(doc_1)]
+                dv_2 = self.data[vectorName][int(doc_2)]           
+                dist = np.linalg.norm(dv_1-dv_2)
+                distanceSample.append(dist)
                 cov = doc_1*numHalf + doc_2
                 prog=(cov+1)/total
                 self.drawProgressBar(prog)
-        pltx = plot.hist(distanceSample,bins=20)
+        pltx = plt.hist(distanceSample,bins=50)
         return(pltx)
     
     '''
@@ -201,7 +234,7 @@ class flingPretrained:
                 continue;
             else:
                 docVecList.append(res)            
-        return(np.mean(docVecList,axis=0))
+        return(np.nanmean(docVecList,axis=0))
     
     '''
     For each group in the specified column, average all the document vectors in the 
@@ -209,34 +242,24 @@ class flingPretrained:
     
     TASK: explore more options of averaging the vectors. '''
     def createGroupedCharacteristics(self,column):
+        vecList = ['glove-vector','doc2vec','vec_tfidf-glove','glove-tfIDF']
         self.dataTrain.groupby([column])
-        print("\nComputing groupCharacteristics for GloVe!")
-        self.groupedCharacteristic['glove-vector'] = self.dataTrain.groupby([column])['glove-vector'].apply(np.average).to_frame()
-        print("\nComputing groupCharacteristics for doc2vec!")
-        self.groupedCharacteristic['doc2vec'] = self.dataTrain.groupby([column])['doc2vec'].apply(np.average).to_frame()
-        #print("\nComputing groupCharacteristics for tfidf-doc2vec!")
-        #self.groupedCharacteristic['vec_tfidf-doc2vec'] = self.dataTrain.groupby([column])['vec_tfidf-doc2vec'].apply(np.average).to_frame()
-        print("\nComputing groupCharacteristics for tfidf-GloVe!")
-        self.groupedCharacteristic['vec_tfidf-glove'] = self.dataTrain.groupby([column])['vec_tfidf-glove'].apply(np.average).to_frame()
-       
+        print("\nComputing groupCharacteristics for,",column)
+        for vec in vecList:
+            self.groupedCharacteristic[vec] = self.dataTrain.groupby(column)[vec].apply(np.average).to_frame()
+ 
     '''
     Function to return the group most simimar to the vector, based on distance computed with every group characteristics.
     '''
     def getNearestGroup(self,vec,vectorName):
         minDist = math.inf
         minGroup = None
-        for colx in fdb.groupedCharacteristic[vectorName].index.values:
-            vecy = fdb.groupedCharacteristic[vectorName].loc[colx].to_numpy(dtype=object)
-            #distx = np.linalg.norm(vec-vecy)
-            vec0 = sum([1 for x in vec if x==float(0)])
-            if vec0!=50:
-                distx = np.linalg.norm(scipy.spatial.distance.euclidean(vec,vecy))
-                mag = np.sqrt(distx)
-                print("case#1/distx",distx)
-            else:
-                distx = np.sqrt(np.linalg.norm(vecy))
-                print("case#2/distx",distx)
-            if mag<minDist:
+        for colx in self.groupedCharacteristic[vectorName].index.values:
+            vecy = self.groupedCharacteristic[vectorName].loc[colx].to_numpy(dtype=object)
+            if not np.all(vec):
+                vec = ([0.0001]*50)
+            distx = np.linalg.norm(scipy.spatial.distance.cosine(vec,vecy))
+            if distx < minDist:
                 minDist = distx
                 minGroup = colx                 
         return minGroup
@@ -268,7 +291,7 @@ class flingPretrained:
             if self.dataTest[vecName].iloc[d] == self.dataTest[compareWith].iloc[d]:
                 countCorrect+=1
         print("Accuracy of",vecName,countCorrect/self.nDocsTest*100,"%")
-            
+
     '''
     Convert tfIDF dictionary for every document with precomputed word-embeddings
     '''
@@ -291,3 +314,7 @@ class flingPretrained:
                 prog=(indx+1)/self.nDocs
                 self.drawProgressBar(prog)
         self.data[columnName] = vecL
+        try:
+            self.getDistanceDistribution(100,'glove-tfIDF')
+        except:
+            return

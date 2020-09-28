@@ -28,84 +28,433 @@ Latest Developments tracked in
 *arnab64/fling*
 https://github.com/arnab64/fling.git
 
-Usage
--------
-Basic usage instructions. As the code is in development, it might not be stable.  More details will be added by 09/30/2020 for proper usage of the library.
-
-*Reading data*
+### Example notebook: ADDING PRETRAINED VECTORS, TRAINING VECTORS, CREATING COMBINED VECTORS
 ```python
-from fling import textclustering
-from fling import embeddings
-from fling import dbscan
+# EXAMPLE: classifying SPAM with fLing
+
+import matplotlib as mpl
+from imp import reload
+from nltk.corpus import stopwords
+from collections import Counter
+import pandas as pd
+import numpy as np
+import scipy
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import nltk,re,pprint
+import sys,glob,os
+import operator, string, argparse, math, random, statistics
+import matplotlib.pyplot as plt
+from sklearn import metrics
 ```
-For now, operations are performed in Pandas dataframes, and the file format we read is csv.
-```python
-#change operating folder      
-os.chdir("/Users/arnabborah/Documents/repositories/textclusteringDBSCAN/scripts/")
 
-#read the .csv data file using the dataProcessor class
-rp = tfm.dataProcessor("../datasets/DataAnalyst.csv")
+
+```python
+from fling import utilities as ut
+from fling import tfidfModule as tfm
+
+#load and preProcess (tokenize) the data, you can use other tokenizers as well
+os.chdir("/Users/arnabborah/Documents/repositories/fling/")
+spamtm = tfm.dataProcessor("datasets/spamTextMessages.csv",None)
+spamtm.dataInitial
 ```
 
-### using the generic TF-IDF module (unsupervised)
-```python
-#create a flingTFIDF object around the pre-processed daa
-ftf = tfm.flingTFIDF(rp.dataInitialSmall,'Job Description')
 
-# tokenization, customizable
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Category</th>
+      <th>Message</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>ham</td>
+      <td>Go until jurong point, crazy.. Available only ...</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>ham</td>
+      <td>Ok lar... Joking wif u oni...</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>spam</td>
+      <td>Free entry in 2 a wkly comp to win FA Cup fina...</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>ham</td>
+      <td>U dun say so early hor... U c already then say...</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>ham</td>
+      <td>Nah I don't think he goes to usf, he lives aro...</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>5567</th>
+      <td>spam</td>
+      <td>This is the 2nd time we have tried 2 contact u...</td>
+    </tr>
+    <tr>
+      <th>5568</th>
+      <td>ham</td>
+      <td>Will Ã¼ b going to esplanade fr home?</td>
+    </tr>
+    <tr>
+      <th>5569</th>
+      <td>ham</td>
+      <td>Pity, * was in mood for that. So...any other s...</td>
+    </tr>
+    <tr>
+      <th>5570</th>
+      <td>ham</td>
+      <td>The guy did some bitching but I acted like i'd...</td>
+    </tr>
+    <tr>
+      <th>5571</th>
+      <td>ham</td>
+      <td>Rofl. Its true to its name</td>
+    </tr>
+  </tbody>
+</table>
+<p>5572 rows × 2 columns</p>
+</div>
+
+
+
+
+```python
+# creating a flingTFIDF to compute TF-IDF and add it as a new column (pd.dataframe) to data
+ftf = tfm.flingTFIDF(spamtm.dataInitial,'Message')
 ftf.smartTokenizeColumn()
-
-# get Term Frequency of each document, and store add it as an object, in a new column
 ftf.getTF()
-
-# compute Inverse Document Frequencies across the entire vocabulary
 ftf.computeIDFmatrix()
-
-# get TFIDF, and store it as a new column in data, tf-idf
 ftf.getTFIDF()
 
-# compute sum of all tf-idf values and add it as a new column
+#do the next line only if you are computing distances on tfIDF dict only
 ftf.createDistanceMetadata()
-ftf.writeToFile()
 ```
 
-### using the categeorical TF-IDF module (semi-supervised)
+    [ ================================================== ] 100.00%
+    Adding term frequency column based on stopsRemoved
+    [ ================================================== ] 100.00%
+    Computing list of words for IDF...
+    
+    Created list of terms for IDF matrix with 8780  terms.
+    
+    Computing global IDF matrix...
+    
+    [ ================================================== ] 100.00%
+    Computing and adding TF-IDF column based on stopsRemoved
+    [ ================================================== ] 100.00%
+
+
 ```python
-from textclustering import categoricalCharacteristicModule as ccm
+import gensim
+from fling import vectorize as vect
 
-rp = dataProcessor("../datasets/DataAnalyst.csv")
-
-# performing custom categorical operations on the data-frame
-rp.customProcessData()
-
-fcat = flingCategoricalTFIDF()
-allfnames = ft.getallfilenames("/Users/arnabborah/Documents/repositories/textclusteringDBSCAN/processFiles/trainCatFiles")
-ft.computeTFIDFallfiles(allfnames)
+# training and adding doc2vec vectors based on column 'Messages'.
+# gensim is a requirement to train doc2vec vectors 
+vecc = vect.vectorize(ftf.data,'Message')
+trained_doc2vec_model = vecc.trainDocVectors()
+vecc.addDocVectors()
+vecc.data
 ```
 
-### adding pre-trained GloVe vectors
-```python
-from textclustering import flingPretrained as pre
+    5572 documents added!
 
-dataProcessed = pd.read_pickle('../processFiles/data_tfidf_processed.pkl')
-fdb = pre.flingPretrained(dataProcessed)
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Category</th>
+      <th>Message</th>
+      <th>stopsRemoved</th>
+      <th>tfMatrix</th>
+      <th>sumTFIDF</th>
+      <th>doc2vec</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>ham</td>
+      <td>Go until jurong point, crazy.. Available only ...</td>
+      <td>go jurong point crazy available bugis n great ...</td>
+      <td>word  tf    tf-idf
+0          go   1 ...</td>
+      <td>38.281443</td>
+      <td>[0.015742207, 0.0031893118, 0.010138756, -0.08...</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>ham</td>
+      <td>Ok lar... Joking wif u oni...</td>
+      <td>ok lar joking wif u oni</td>
+      <td>word  tf    tf-idf
+0      ok   1  1.31950...</td>
+      <td>12.583182</td>
+      <td>[-0.014953367, 0.030154036, 0.017708715, -0.10...</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>spam</td>
+      <td>Free entry in 2 a wkly comp to win FA Cup fina...</td>
+      <td>free entry  wkly comp win fa cup final tkts st...</td>
+      <td>word  tf    tf-idf
+0         entry ...</td>
+      <td>49.524838</td>
+      <td>[0.008385706, 0.004221165, -2.3364251e-05, -0....</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>ham</td>
+      <td>U dun say so early hor... U c already then say...</td>
+      <td>u dun say early hor u c already say</td>
+      <td>word  tf    tf-idf
+0        u   2  1.669...</td>
+      <td>16.431526</td>
+      <td>[0.029679298, 0.06244122, -0.008049136, -0.119...</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>ham</td>
+      <td>Nah I don't think he goes to usf, he lives aro...</td>
+      <td>nah think goes usf lives around though</td>
+      <td>word  tf    tf-idf
+0     nah   1  2.70461...</td>
+      <td>16.678825</td>
+      <td>[0.004876227, -0.008055425, 0.0023417333, 0.00...</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>5567</th>
+      <td>spam</td>
+      <td>This is the 2nd time we have tried 2 contact u...</td>
+      <td>nd time tried  contact u u â£ pound prize  cla...</td>
+      <td>word  tf    tf-idf
+0            ...</td>
+      <td>29.685673</td>
+      <td>[0.043106798, 0.06623637, -0.010588597, -0.185...</td>
+    </tr>
+    <tr>
+      <th>5568</th>
+      <td>ham</td>
+      <td>Will Ã¼ b going to esplanade fr home?</td>
+      <td>ã¼ b going esplanade fr home</td>
+      <td>word  tf    tf-idf
+0         ã¼   1  1...</td>
+      <td>12.328684</td>
+      <td>[0.016016621, -0.01830655, 0.016508967, -0.105...</td>
+    </tr>
+    <tr>
+      <th>5569</th>
+      <td>ham</td>
+      <td>Pity, * was in mood for that. So...any other s...</td>
+      <td>pity * mood soany suggestions</td>
+      <td>word  tf    tf-idf
+0         pity   ...</td>
+      <td>15.080331</td>
+      <td>[-0.18763976, 0.03453686, -0.027078941, -0.055...</td>
+    </tr>
+    <tr>
+      <th>5570</th>
+      <td>ham</td>
+      <td>The guy did some bitching but I acted like i'd...</td>
+      <td>guy bitching acted like i'd interested buying ...</td>
+      <td>word  tf    tf-idf
+0          guy   ...</td>
+      <td>32.770129</td>
+      <td>[0.009096158, -0.0057535497, 0.004273705, -0.0...</td>
+    </tr>
+    <tr>
+      <th>5571</th>
+      <td>ham</td>
+      <td>Rofl. Its true to its name</td>
+      <td>rofl true name</td>
+      <td>word  tf    tf-idf
+0  rofl   1  3.143951
+1 ...</td>
+      <td>7.558242</td>
+      <td>[-0.0014662278, 0.009742865, 0.0015902708, -0....</td>
+    </tr>
+  </tbody>
+</table>
+<p>5572 rows × 6 columns</p>
+</div>
+
+
+
+
+```python
+from fling import flingPretrained as fpt
+
+# creating a flingPretrained
+# dataProcessed = pd.read_pickle('datasets/data_tfidf_processed.pkl')
+fdb = fpt.flingPretrained(vecc.data)
+#adding pretrained glove vectors 
 fdb.loadPretrainedWordVectors('glove')
-fdb.addDocumentGloveVector()
+fdb.addDocumentGloveVectors()
 
-# to get a sample of the distance distribution, where the first param is number of random documents 
-fdb.getDistanceDistribution(200,'glove')
-fdb.getDistanceDistribution(500,'glove')
+# adding combo vectors with tfidf and (glove + doc2vec) for inter sentence semantic information addition
+fdb.tfidf2vec('tf-idf','glove')
+# fdb.tfidf2vec('tf-idf','doc2vec')
+fdb.splitTestTrain()
+fdb.dataTrain
 ```
 
-### tfidf2vec : convert tf-idf information into vectors using pre-trained word vectors (GloVe)
+    
+    Working on pretrained word embeddings!
+    
+    Loading Glove Model
+    
+    400000  words loaded!
+    
+    GloVe Vectors Loaded!
+    
+    [ ================================================== ] 100.00%
+    Computing column: vec_tfidf-glove
+    [ ==                                                 ] 5.81%
+
+    /Users/arnabborah/Documents/repositories/fling/fling/flingPretrained.py:237: RuntimeWarning: Mean of empty slice
+      return(np.nanmean(docVecList,axis=0))
+
+
+    [ =========================================          ] 83.44%%
+
+
+    
+![png](example_files/example_4_3.png)
+    
+
+
+
 ```python
-# converting tf-idf to vector using term frequencies information only
-fdb.tfidf2vec('tf-only')
-# converting tf-idf to vector using tf-idf information 
-fdb.tfidf2vec('tf-idf')
+# train group characteristics on column 'category' 
+fdb.createGroupedCharacteristics('Category')
+for key in fdb.groupedCharacteristic.keys():
+    print('Characteristic of',key,'\n',fdb.groupedCharacteristic[key])   
 ```
 
-### Notebook for showing usage
+    
+    Computing groupCharacteristics for, Category
+    Characteristic of glove 
+     None
+    Characteristic of vec_tfidf-doc2vec 
+     None
+    Characteristic of vec_tfidf-glove 
+                                                 vec_tfidf-glove
+    Category                                                   
+    ham       [nan, nan, nan, nan, nan, nan, nan, nan, nan, ...
+    spam      [nan, nan, nan, nan, nan, nan, nan, nan, nan, ...
+    Characteristic of doc2vec 
+                                                         doc2vec
+    Category                                                   
+    ham       [-0.0008339239, 0.008468696, 0.0014372141, -0....
+    spam      [0.00509379, 0.008787291, -0.0049210927, -0.05...
+    Characteristic of glove-vector 
+                                                    glove-vector
+    Category                                                   
+    ham       [0.08621057522946847, 0.16108873455431685, 0.1...
+    spam      [0.038020029286601906, 0.25794960063990663, 0....
+    Characteristic of glove-tfIDF 
+                                                     glove-tfIDF
+    Category                                                   
+    ham       [0.08615151890437718, 0.16173257886936682, 0.1...
+    spam      [0.032436123023218626, 0.24874980733559582, 0....
+
+
+
+```python
+# predict vector based Category for each type of vector added
+fdb.addVectorComputedGroup('glove-vector','cGroup_glove')
+fdb.addVectorComputedGroup('doc2vec','cGroup_doc2vec')
+fdb.addVectorComputedGroup('glove-tfIDF','cGroup_gloveWt_tfidf')
+fdb.addVectorComputedGroup('vec_tfidf-glove','cGroup_tfidf-glove')
+```
+
+    /Users/arnabborah/Documents/repositories/fling/fling/flingPretrained.py:284: SettingWithCopyWarning: 
+    A value is trying to be set on a copy of a slice from a DataFrame.
+    Try using .loc[row_indexer,col_indexer] = value instead
+    
+    See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+      self.dataTest[groupName] = computedGroups
+
+
+
+```python
+#fdb.addVectorComputedGroup('vec_tfidf-doc2vec','cGroup_tfidf-doc2vec')
+fdb.getAccuracy('Category','cGroup_glove')
+fdb.getAccuracy('Category','cGroup_doc2vec')
+fdb.getAccuracy('Category','cGroup_gloveWt_tfidf')
+fdb.getAccuracy('Category','cGroup_tfidf-glove')
+```
+
+    Accuracy of cGroup_glove 79.84449760765551 %
+    Accuracy of cGroup_doc2vec 78.88755980861244 %
+    Accuracy of cGroup_gloveWt_tfidf 79.90430622009569 %
+    Accuracy of cGroup_tfidf-glove 0.0 %
+
+
+
+```python
+
+```
+
+
+
+### Example notebook: CLUSTERING
 ```python
 import os
 import warnings
