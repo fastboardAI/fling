@@ -27,11 +27,19 @@ class flingPretrained:
         self.wordVecModel = {'glove':None, 'doc2vec':None}
         print("\nDBSCAN initialized!\n")
         
+    '''
+    Load pretrained word vectors: gloVe, fastText, doc2vec, word2vec, SDAE
+    by calling the appropriate load function for the vector type.
+    '''
     def loadPretrainedWordVectors(self,vecType):
         if vecType == 'glove':
             self.wordVecModel['glove'] = self.loadGloveModel()
             print("GloVe Vectors Loaded!\n") 
 
+    '''
+    Loads the glove model provided a filename.
+    TASK: edit the function to take a filename instead of hard-coding the location of the GloVe model.
+    '''
     def loadGloveModel(self):
         print("Loading Glove Model\n")
         try:
@@ -220,13 +228,14 @@ class flingPretrained:
         for colx in fdb.groupedCharacteristic[vectorName].index.values:
             vecy = fdb.groupedCharacteristic[vectorName].loc[colx].to_numpy(dtype=object)
             #distx = np.linalg.norm(vec-vecy)
-            if np.sum(vec)!=0:
+            vec0 = sum([1 for x in vec if x==float(0)])
+            if vec0!=50:
                 distx = np.linalg.norm(scipy.spatial.distance.euclidean(vec,vecy))
-                #print("case#1/distx",distx)
+                mag = np.sqrt(distx)
+                print("case#1/distx",distx)
             else:
-                distx = np.linalg.norm(vecy.dot(vecy))
-                #print("case#2/distx",distx)
-            mag = np.sqrt(distx)
+                distx = np.sqrt(np.linalg.norm(vecy))
+                print("case#2/distx",distx)
             if mag<minDist:
                 minDist = distx
                 minGroup = colx                 
