@@ -35,6 +35,13 @@ class flingDBSCAN:
                 self.epsilon = self.getBestDistance('tfidf')
                 print("\nBest epsilon computed on GLOVE-TFIDF =",self.epsilon,"\n")
             
+    ''' Computing best distance using specified method. Methods supported:
+        1. gloVe 
+        2. tfidf
+        3. doc2vec 
+        3. tfidf-gloVe
+        4. tfidf-doc2vec
+    '''
     def getBestDistance(self,method):
         numx = 100
         numHalf = int(numx/2)
@@ -72,11 +79,13 @@ class flingDBSCAN:
         noisePc = len(self.noisePts)/self.nDocs*100
         print(" --",noisePc,"% noise!\n")
             
+    # not used anywhere, will be removed in next version
     def printClusterMetadata(self,n):
         for j in range(n):
             print(j, self.clusterMetadata[j])
          
-    # range query equivalent function
+    ''' DBSCAN 'range query equivalent' function. Iterates over all unassigned points and if less than epsilon distance, assigns the point to the nearest category        
+    '''
     def findNeighborOf(self,ptIndex,method):
         distance = {}
         

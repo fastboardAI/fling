@@ -1,4 +1,3 @@
-
 import matplotlib as mpl
 from imp import reload
 from nltk.corpus import stopwords
@@ -14,6 +13,11 @@ import matplotlib.pyplot as plt
 from sklearn import metrics
 
 class flingPretrained:
+    '''
+    Trains linguistic models: doc2vec, fastText, word2vec, SDAE
+    Load pretrained linguistic models: doc2vec, fastText, word2vec, SDAE
+    Save group characteristics
+    '''
     def __init__(self,data):
         self.data = data
         self.nDocs = len(self.data)
@@ -43,11 +47,18 @@ class flingPretrained:
         print(len(gloveModel)," words loaded!\n")
         return(gloveModel)
     
+    '''
+    Returns the computed GloVe vector for the document. Note: a document contains multiple words, 
+    and we have word vectors corresponding to every word in Glove
+    '''
     def getDocVector(self,doc_Id):
         gvl=self.getGloveVectorList(listx)
         glove_dv = np.mean(gvl,axis=0)
         return(glove_dv)
     
+    '''
+    Add the new computed GloVe vector on the document to the data.
+    '''
     def addDocumentGloveVector(self):
         vecL = []
         for indx in range(self.nDocs):
@@ -56,7 +67,10 @@ class flingPretrained:
             vecL.append(np.mean(gvl,axis=0))
         self.data['glove-vector'] = vecL
 
-    # distance between two documents using TF-IDF
+    '''
+    Distance between two documents using TF-IDF dictionaries.
+        Method used: Using 'percentage of importance' by using tf-idf score as weights
+    '''
     def distanceBtnTwoDocs(self, docId_1, docId_2):
         listWords_1 = set(list(self.data['tfMatrix'][int(docId_1)]['word']))
         listWords_2 = set(list(self.data['tfMatrix'][int(docId_2)]['word']))
@@ -80,7 +94,9 @@ class flingPretrained:
         score_total = score_common + score_doc1 + score_doc2
         return(score_total)
     
-    #get gloVe vectors for all words in the document
+    '''
+    Returns a list of GloVe vectors for all words in the document.
+    '''
     def getGloveVectorList(self,listx):
         vecList = []
         nf = []
@@ -89,7 +105,6 @@ class flingPretrained:
                 vecList.append(self.wordVecModel['glove'][w])
             except:
                 nf.append(w)
-                #print(w,"not found in glove model!")
                 continue        
         if len(vecList)==0:
             return([[0]*50])
@@ -102,16 +117,15 @@ class flingPretrained:
         glove_dv = np.mean(gvl,axis=0)
         return(glove_dv)
     
+    '''
+    Returns the distance between two GloVe vectors.
+    '''
     def getGloveDistance(self,docId_1,docId_2,method):
-        #listWords_1 = set(list(self.data['tfMatrix'][int(docId_1)]['word']))
-        #listWords_2 = set(list(self.data['tfMatrix'][int(docId_2)]['word']))
         listWords_1 = set(list(self.data['tfMatrix'].iloc[int(docId_1)]['word']))
         listWords_2 = set(list(self.data['tfMatrix'].iloc[int(docId_2)]['word']))
         if method == 'average':
             dv_1 = self.getDocVector(listWords_1)
             dv_2 = self.getDocVector(listWords_2)
-            #print("dv_1",dv_1)
-            #print("dv_2",dv_2)
             dist = np.linalg.norm(dv_1-dv_2)
             return dist
               
@@ -126,7 +140,10 @@ class flingPretrained:
         sys.stdout.write("[ %s ] %.2f%%" % (progress, percent * 100))
         sys.stdout.flush()	
 
-    #sample distance between n random documents 
+    '''
+    sample distance between numx random documents and generate a bucketized histogram plot to get a better
+    idea of the inter-document distance in the data.
+    '''
     def getDistanceDistribution(self,numx,method):
         numHalf = int(numx/2)
         doca,docb = [],[]
@@ -147,12 +164,18 @@ class flingPretrained:
         pltx = plot.hist(distanceSample,bins=20)
         return(pltx)
     
+    '''
+    Returns the gloVe vector for the word from the pre-trained gloVe vectors.
+    '''
     def getGloveScore(self,w):
         try:
             return(self.wordVecModel['glove'][w])
         except:
             return([0*50]) 
     
+    '''
+    Combines document tfIDF dictionary with other document vectors to create combined vectors. 
+    '''
     def doctfidf2vec(self,docId,mode):
         docVecList = []
         listWords = list(self.data['tfMatrix'][int(docId)]['word'])
@@ -170,10 +193,13 @@ class flingPretrained:
                 continue;
             else:
                 docVecList.append(res)            
-        #print([len(el) for el in docVecList])
-        #vecArray = np.stack(docVecList, axis=0)
         return(np.mean(docVecList,axis=0))
     
+    '''
+    For each group in the specified column, average all the document vectors in the 
+    group to create a group characteristic
+    
+    TASK: explore more options of averaging the vectors. '''
     def createGroupedCharacteristics(self,column):
         self.dataTrain.groupby([column])
         print("\nComputing groupCharacteristics for GloVe!")
@@ -185,37 +211,48 @@ class flingPretrained:
         print("\nComputing groupCharacteristics for tfidf-GloVe!")
         self.groupedCharacteristic['vec_tfidf-glove'] = self.dataTrain.groupby([column])['vec_tfidf-glove'].apply(np.average).to_frame()
        
+    '''
+    Function to return the group most simimar to the vector, based on distance computed with every group characteristics.
+    '''
     def getNearestGroup(self,vec,vectorName):
         minDist = math.inf
         minGroup = None
         for colx in fdb.groupedCharacteristic[vectorName].index.values:
             vecy = fdb.groupedCharacteristic[vectorName].loc[colx].to_numpy(dtype=object)
             #distx = np.linalg.norm(vec-vecy)
-            is_all_zero = np.all((vecy == 0.0))
-            if not is_all_zero:
+            if np.sum(vec)!=0:
                 distx = np.linalg.norm(scipy.spatial.distance.euclidean(vec,vecy))
+                #print("case#1/distx",distx)
             else:
-                distx = np.linalg.norm(vec)
-            print(distx)
-            if distx<minDist:
+                distx = np.linalg.norm(vecy.dot(vecy))
+                #print("case#2/distx",distx)
+            mag = np.sqrt(distx)
+            if mag<minDist:
                 minDist = distx
                 minGroup = colx                 
         return minGroup
     
+    '''
+    Explore options to optimize space using function.
+    '''
     def splitTestTrain(self):
         mPt = int(self.nDocs*0.7)
         self.dataTrain = self.data[:mPt]
         self.dataTest = self.data[mPt:]
         self.nDocsTest = len(self.dataTest)
                
+    '''
+    Add computed group as a new column.
+    '''
     def addVectorComputedGroup(self,vectorName,groupName):
         computedGroups = []
         for docId in range(self.nDocsTest):
             computedGroup = self.getNearestGroup(self.dataTest[vectorName].iloc[docId],vectorName)
             computedGroups.append(computedGroup)           
-        self.dataTest[groupName] = computedGroups
-        
-        
+        self.dataTest[groupName] = computedGroups      
+    '''
+    Simple percentage count of documents which got the correct labels assigned.
+    '''  
     def getAccuracy(self,compareWith,vecName):
         countCorrect = 0
         for d in range(self.nDocsTest):
@@ -223,6 +260,9 @@ class flingPretrained:
                 countCorrect+=1
         print("Accuracy of",vecName,countCorrect/self.nDocsTest*100,"%")
             
+    '''
+    Convert tfIDF dictionary for every document with precomputed word-embeddings
+    '''
     def tfidf2vec(self,mode,method):
         vecL = []
         if mode == 'tf-only':
@@ -242,48 +282,3 @@ class flingPretrained:
                 prog=(indx+1)/self.nDocs
                 self.drawProgressBar(prog)
         self.data[columnName] = vecL
-
-class vectorize:
-    def __init__(self,data,factorName):
-        self.data = data
-        self.dataNew = []
-        self.model = None
-        self.swords = set(stopwords.words('english'))
-        self.factorName = factorName
-        for docId in range(len(self.data)):
-            dv_1 = self.data[factorName][int(docId)]
-            self.dataNew.append(dv_1)
-        self.nDocs = len(self.dataNew)
-        print(self.nDocs,"documents added!")
-        
-    def rem_stop_punct(self,originalText):
-        splittedText = originalText.split()
-        lenl = len(splittedText)
-        wordFiltered = []
-        tSent = []
-        for r in range(lenl):
-            wordx_1 = splittedText[r]
-            wordx_2 = "".join(c for c in wordx_1 if c not in ('!','.',':',',','?',';','``','&','-','"','(',')','[',']','0','1','2','3','4','5','6','7','8','9')) 
-            sWord = wordx_2.lower()
-            if sWord not in self.swords:
-                tSent.append(sWord)
-        return tSent
-
-    def tagged_document(self,list_of_list_of_words):
-        for i, list_of_words in enumerate(list_of_list_of_words):
-            yield gensim.models.doc2vec.TaggedDocument(list_of_words, [i])
-
-    def trainDocVectors(self):
-        print("\nTraining doc2vec model.")
-        self.data_for_training = list(self.tagged_document(self.dataNew))
-        self.model = gensim.models.doc2vec.Doc2Vec(vector_size=50, min_count=2, epochs=30)
-        self.model.build_vocab(self.data_for_training)
-        self.model.train(self.data_for_training, total_examples=self.model.corpus_count, epochs=self.model.epochs)
-        return(self.model)
-        
-    def addDocVectors(self):
-        print("\nAdding doc2vec vectors to dataset.")
-        docVectors = []
-        for docId in range(len(self.data)):
-            docVectors.append(self.model.infer_vector(self.rem_stop_punct(self.data[self.factorName][int(docId)])))
-        self.data['doc2vec'] = docVectors
