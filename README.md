@@ -1,9 +1,12 @@
 # fLing : Fast Linguistics 
-The fLing Open Source Project, in collaboration with Tezpur University Dept. of CSE.
-Library for all your unsupervised linguistics tasks in production.
+
+![GitHub Contributors](https://img.shields.io/github/contributors/fastboardAI/fling?style=for-the-badge)
+![Lines of Code](https://img.shields.io/tokei/lines/github/fastboardAI/fling?style=for-the-badge)
+
+> The fLing Open Source Project, in collaboration with Tezpur University Dept. of CSE - a library for all your unsupervised linguistics tasks in production.
 
 
-![fling](fling.png)
+![fling](./fling.png)
 
 ### Introduction
 This is a library for performing unsupervised lingustic functionalities based on textual fields on your data. An API will also be released for real-time inference. This is a beta version of the of fling open source project. For download information and usage manuals, take a look at the notebook files in examples.
