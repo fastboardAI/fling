@@ -1,4 +1,13 @@
 import gensim
+import matplotlib as mpl
+from imp import reload
+from nltk.corpus import stopwords
+from collections import Counter
+import pandas as pd
+import numpy as np
+import nltk,re,pprint
+import sys,glob,os
+import operator, string, argparse, math, random, statistics
 
 class vectorize:
     def __init__(self,data,factorName):
