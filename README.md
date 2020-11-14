@@ -1,9 +1,12 @@
 # fLing : Fast Linguistics 
-The fLing Open Source Project, in collaboration with Tezpur University Dept. of CSE.
-Library for all your unsupervised linguistics tasks in production.
+
+![GitHub Contributors](https://img.shields.io/github/contributors/fastboardAI/fling?style=for-the-badge)
+![Lines of Code](https://img.shields.io/tokei/lines/github/fastboardAI/fling?style=for-the-badge)
+
+> The fLing Open Source Project, in collaboration with Tezpur University Dept. of CSE - a library for all your unsupervised linguistics tasks in production.
 
 
-![fling](fling.png)
+![fling](./fling.png)
 
 ### Introduction
 This is a library for performing unsupervised lingustic functionalities based on textual fields on your data. An API will also be released for real-time inference. This is a beta version of the of fling open source project. For download information and usage manuals, take a look at the notebook files in examples.
@@ -28,82 +31,6 @@ Latest Developments tracked in
 *arnab64/fling*
 https://github.com/arnab64/fling.git
 
-Usage
--------
-Basic usage instructions. As the code is in development, it might not be stable.  More details will be added by 09/30/2020 for proper usage of the library.
-
-*Reading data*
-```python
-from fling import textclustering
-from fling import embeddings
-from fling import dbscan
-```
-For now, operations are performed in Pandas dataframes, and the file format we read is csv.
-```python
-#change operating folder      
-os.chdir("/Users/arnabborah/Documents/repositories/textclusteringDBSCAN/scripts/")
-
-#read the .csv data file using the dataProcessor class
-rp = tfm.dataProcessor("../datasets/DataAnalyst.csv")
-```
-
-### using the generic TF-IDF module (unsupervised)
-```python
-#create a flingTFIDF object around the pre-processed daa
-ftf = tfm.flingTFIDF(rp.dataInitialSmall,'Job Description')
-
-# tokenization, customizable
-ftf.smartTokenizeColumn()
-
-# get Term Frequency of each document, and store add it as an object, in a new column
-ftf.getTF()
-
-# compute Inverse Document Frequencies across the entire vocabulary
-ftf.computeIDFmatrix()
-
-# get TFIDF, and store it as a new column in data, tf-idf
-ftf.getTFIDF()
-
-# compute sum of all tf-idf values and add it as a new column
-ftf.createDistanceMetadata()
-ftf.writeToFile()
-```
-
-### using the categeorical TF-IDF module (semi-supervised)
-```python
-from textclustering import categoricalCharacteristicModule as ccm
-
-rp = dataProcessor("../datasets/DataAnalyst.csv")
-
-# performing custom categorical operations on the data-frame
-rp.customProcessData()
-
-fcat = flingCategoricalTFIDF()
-allfnames = ft.getallfilenames("/Users/arnabborah/Documents/repositories/textclusteringDBSCAN/processFiles/trainCatFiles")
-ft.computeTFIDFallfiles(allfnames)
-```
-
-### adding pre-trained GloVe vectors
-```python
-from textclustering import flingPretrained as pre
-
-dataProcessed = pd.read_pickle('../processFiles/data_tfidf_processed.pkl')
-fdb = pre.flingPretrained(dataProcessed)
-fdb.loadPretrainedWordVectors('glove')
-fdb.addDocumentGloveVector()
-
-# to get a sample of the distance distribution, where the first param is number of random documents 
-fdb.getDistanceDistribution(200,'glove')
-fdb.getDistanceDistribution(500,'glove')
-```
-
-### tfidf2vec : convert tf-idf information into vectors using pre-trained word vectors (GloVe)
-```python
-# converting tf-idf to vector using term frequencies information only
-fdb.tfidf2vec('tf-only')
-# converting tf-idf to vector using tf-idf information 
-fdb.tfidf2vec('tf-idf')
-```
 ### Example notebook: ADDING PRETRAINED VECTORS, TRAINING VECTORS, CREATING COMBINED VECTORS
 ```python
 # EXAMPLE: classifying SPAM with fLing
