@@ -12,15 +12,17 @@
 This is a library for performing unsupervised lingustic functionalities based on textual fields on your data. An API will also be released for real-time inference. This is a beta version of the of fling open source project. For download information and usage manuals, take a look at the notebook files in examples.
 
 Primary functionalities
-- [x] Pre-process text columns in dataset, with custom tokenizers.
-- [x] Add tf-idf dictionary as a new column to a dataset.
-- [x] Add pretrained word embeddings to convert raw text to document embeddings (word2vec, glove, fastText, custom trained). This module has dependency on gensim and tensorflow.
-- [x] Train fastText, word2vec, doc2vec word vectors and add a new column to dataset.
-- [x] Use tfidf2vec dict to convert tfidf information with pretrained word embeddings to get corpus enhanced combined word embeddings.
+- [x] Pre-process text columns in dataset, with custom 'task-specific' NLP transformers based tokenizers.
+- [x] Simulate data in Apache Lucene, and get TF-IDF and BM25 based distance metrics, enhanced to fit your domain and task specific goals. 
+- [x] Add pretrained word embeddings to convert raw text to document embeddings (word2vec, glove, fastText, custom trained) for non-transformers based methods, and use custom embeddings to train customer transformer models. 
+- [x] Use domain enhanced BM25 and and tfidf based distance metrics.
 - [x] Save cluster characteristics in a trained model and used distance based methods to compute fast clusters for documents in test data.
-- [x] Use clusterID's as a new feature for other supervised and unsupervised tasks
+- [x] Use clusterID's as a new feature for other supervised and unsupervised tasks.
 
-Upcoming additions
+Dependencies
+- pytorch, huggingface/transformers, gensim
+
+Technologies used
 - Adding Sequential Denoising Autoencoders
 - ClusterGANS initial edition
  
