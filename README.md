@@ -3,24 +3,33 @@
 ![GitHub Contributors](https://img.shields.io/github/contributors/fastboardAI/fling?style=for-the-badge)
 ![Lines of Code](https://img.shields.io/tokei/lines/github/fastboardAI/fling?style=for-the-badge)
 
-> The fLing Open Source Project, in collaboration with Tezpur University Dept. of CSE - a library for all your unsupervised linguistics tasks in production.
-
+> The fLing Open Source Project.
 
 ![fling](./fling.png)
 
 ### Introduction
-This is a library for performing unsupervised lingustic functionalities based on textual fields on your data. An API will also be released for real-time inference. This is a beta version of the of fling open source project. For download information and usage manuals, take a look at the notebook files in examples.
+fLing is a library to extract task-specific linguistic features based on textual fields on your data. A real-time inference API will be released. This is a beta version of the of fling open source project. For download information and usage manuals, take a look at the notebook files in examples.
+
+Primary modules
+- [x] Data storage in ElasticSearch (distributed/real-time)
+- [x] Customized distance metrics
+- [x] Domain and task specific sentence generation
+- [x] Textual Clustering  
+- [x] Multi-objective ranking
+- [x] Ranking model deployment for live Apps. 
 
 Primary functionalities
-- [x] Pre-process text columns in dataset, with custom tokenizers.
-- [x] Add tf-idf dictionary as a new column to a dataset.
-- [x] Add pretrained word embeddings to convert raw text to document embeddings (word2vec, glove, fastText, custom trained). This module has dependency on gensim and tensorflow.
-- [x] Train fastText, word2vec, doc2vec word vectors and add a new column to dataset.
-- [x] Use tfidf2vec dict to convert tfidf information with pretrained word embeddings to get corpus enhanced combined word embeddings.
-- [x] Save cluster characteristics in a trained model and used distance based methods to compute fast clusters for documents in test data.
-- [x] Use clusterID's as a new feature for other supervised and unsupervised tasks
+- [x] Pre-process text columns in dataset, with state-of-the-art 'task-specific' NLP transformers based tokenizers.
+- [x] Store data in elasticSearch, and get TF-IDF and BM25 based distance metrics, enhanced to fit your domain and task specific goals. 
+- [x] Add pretrained word embeddings to convert raw text to document embeddings (word2vec, glove, fastText, custom trained) for non-transformers based methods, and use custom embeddings to train customer transformer models. 
+- [x] Use domain enhanced BM25 and and tfidf based distance methods as weak learners, designed on specific tasks.
+- [x] Compute clusters and save cluster characteristics in a trained model. Use distance-based metrics in ElasticSearch to cluster documents.
+- [x] Use clusterID's as a new feature for other supervised and unsupervised tasks.
 
-Upcoming additions
+Dependencies
+- pytorch, huggingface/transformers, gensim
+
+Technologies used
 - Adding Sequential Denoising Autoencoders
 - ClusterGANS initial edition
  
